@@ -12,19 +12,23 @@ import pymongo
 import datetime
 
 class MongoJobStore(JobStore.JobStore):
-	def __init__(self, mongouri = None):
+	def __init__(self, pointStore, mongouri = None):
 		self.mongouri = mongouri
+		self.pointStore = pointStore
 		self.fork()
-		super(MongoJobStore, self).__init__()
+		super(MongoJobStore, self).__init__(pointStore)
 
 	def fork(self):
 		if self.mongouri:
-			self.db = pymongo.Connection(self.mongouri)
+			self.db = pymongo.Connection(self.mongouri).nwperf
 		else:
 			self.db = pymongo.Connection().nwperf
 
 	def jobProcessed(self):
-		return self.db.jobs.find({"id": int(self.job["JobID"]), "startTime": datetime.datetime.strptime(self.job["Start"], "%Y-%m-%dT%H:%M:%S")}).count()
+		return self.db.jobs.find(
+			{"id": int(self.job["JobID"]),
+			"startTime": datetime.datetime.strptime(self.job["Start"], "%Y-%m-%dT%H:%M:%S")}
+			).count()
 
 	def storeJob(self):
 		self.job["JobID"] = int(self.job["JobID"])
@@ -39,8 +43,6 @@ class MongoJobStore(JobStore.JobStore):
 		metadata["Start"]	= startTime
 		metadata["RunTime"]	= (endTime - startTime).seconds
 		metadata["Graphs"]	= []
-		metadata["UID"]		= int(metadata["UID"])
-		metadata["GID"]		= int(metadata["GID"])
 		metadata.update(self.additionalFields)
 		print "Inserting", metadata
 		_id = self.db.jobs.insert(metadata)

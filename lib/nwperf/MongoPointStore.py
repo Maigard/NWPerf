@@ -21,7 +21,7 @@ class MongoPointStore(object):
 			self.db = pymongo.Connection().nwperf
 		
 
-        def savePoint(self, host, metric, timestamp, value):
+	def savePoint(self, host, metric, timestamp, value):
 		value = float(value)
 		timestamp = int(float(timestamp))
 		self.curValues.setdefault(timestamp/60*60, {}).setdefault(host,[]).append((metric, value))
@@ -33,7 +33,7 @@ class MongoPointStore(object):
 				self.db.points.insert({"time": time, "host": host, "points": self.curValues[timestamp][host]})
 		self.curValues = {}
 
-        def getPoints(self, beginTime, endTime, hosts = None, metrics = None):
+	def getPoints(self, beginTime, endTime, hosts = None, metrics = None):
 		try:
 			endTime = datetime.datetime.fromtimestamp(endTime/60*60)
 		except TypeError:

@@ -11,25 +11,31 @@ import time
 import datetime
 
 class JobStore(object):
+	def __init__(self, pointStore):
+		self.pointStore = pointStore
+
 	def fork(self):
 		pass
 
 	def jobProcessed(self):
-		return false
+		return False
 
 	def storeJob(self):
 		pass
 
-	def processJob(self, job, points, additionalFields = {}, forceProcessing = False):
+	def processJob(self, job, additionalFields = {}, forceProcessing = False):
 		self.job = job
 		self.graphs = {}
 		self.additionalFields = additionalFields
-		twoMinutes = datetime.timedelta(0,120)
-		oneMinute = datetime.timedelta(0,60)
+		twoMinutes = datetime.timedelta(0, 120)
+		oneMinute = datetime.timedelta(0, 60)
+
+		startTime = int(time.strftime("%s", time.strptime(job["Start"], "%Y-%m-%dT%H:%M:%S")))
+		endTime = int(time.strftime("%s", time.strptime(job["End"], "%Y-%m-%dT%H:%M:%S")))
+		points = self.pointStore.getPoints(startTime, endTime, job["Nodes"])
+
 		if forceProcessing or not self.jobProcessed():
 			hostTimes = {}
-			startTime = int(time.strftime("%s", time.strptime(job["Start"], "%Y-%m-%dT%H:%M:%S")))
-			endTime = int(time.strftime("%s", time.strptime(job["End"], "%Y-%m-%dT%H:%M:%S")))
 			if endTime - startTime < 60:
 				return
 			count = 0
@@ -42,8 +48,8 @@ class JobStore(object):
 				except KeyError:
 					hostTimes[i["host"]] = i["time"]
 				hostTimes[i["host"]] = i["time"]
-				self.graphs.setdefault(i["pointname"],{}).setdefault(i["host"],[]).append((i["time"], i["val"]))
-				count+=1
+				self.graphs.setdefault(i["pointname"], {}).setdefault(i["host"], []).append((i["time"], i["val"]))
+				count += 1
 
 			if (count/len(job["Nodes"])) > 2000:
 				print "downsampling", count, len(job["Nodes"])
@@ -64,12 +70,12 @@ class JobStore(object):
 							totalPointCount += 1
 							if curPointCount >= numPoints:
 								try:
-									downSampled.setdefault(host,[]).append( (
+									downSampled.setdefault(host, []).append( (
 										datetime.datetime.fromtimestamp(startTime+totalPointCount*60),
 										sum/(curPointCount-numHoles)
 									))
 								except ZeroDivisionError:
-									downSampled.setdefault(host,[]).append( (
+									downSampled.setdefault(host, []).append( (
 										datetime.datetime.fromtimestamp(startTime+totalPointCount*60),
 										None
 									))

@@ -37,9 +37,6 @@ class JobArchiveGenerator(multiprocessing.Process):
 		while True:
 			job = self.q.get()
 			print job
-			startTime = int(time.strftime("%s", time.strptime(job["Start"], "%Y-%m-%dT%H:%M:%S")))
-			endTime = int(time.strftime("%s", time.strptime(job["End"], "%Y-%m-%dT%H:%M:%S")))
-			points = self.pointStore.getPoints(startTime, endTime, job["Nodes"])
 			self.jobStore.processJob(job, points, self.extraFields)
 
 class PointStoreProcess(multiprocessing.Process):
@@ -119,7 +116,7 @@ def main():
 		parser.error("No cluster specified")
 
 	pointStore = MongoPointStore.MongoPointStore()
-	jobStore = MongoJobStore.MongoJobStore()
+	jobStore = MongoJobStore.MongoJobStore(pointStore) 
 
 	ns = nnslib.NameServer(options.nameserver)
 	ctx = zmq.Context()
